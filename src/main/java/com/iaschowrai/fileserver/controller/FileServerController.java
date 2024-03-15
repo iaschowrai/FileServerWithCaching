@@ -2,6 +2,7 @@ package com.iaschowrai.fileserver.controller;
 
 import com.iaschowrai.fileserver.dto.FileUploadResponse;
 import com.iaschowrai.fileserver.service.FileServerService;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ByteArrayResource;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.FileNotFoundException;
+import java.util.List;
 import java.util.Objects;
 
 @RestController
@@ -22,6 +24,11 @@ import java.util.Objects;
 public class FileServerController {
     private final FileServerService fileServerService;
 
+    @GetMapping("/filenames")
+    public ResponseEntity<List<String>> getAllFileNames() {
+        List<String> fileNames = fileServerService.getAllFileNames();
+        return ResponseEntity.ok(fileNames);
+    }
     @PostMapping("/upload")
     public ResponseEntity<FileUploadResponse> uploadFile(@RequestParam(name = "file") MultipartFile file){
 
@@ -72,6 +79,16 @@ public class FileServerController {
             return ResponseEntity
                     .status(HttpStatus.NOT_FOUND)
                     .body(null);
+        }
+    }
+
+    @DeleteMapping("/delete/{filename}")
+    public ResponseEntity<Void> deleteFile(@PathVariable(name = "filename") String filename) {
+        try {
+            fileServerService.deleteFile(filename);
+            return ResponseEntity.noContent().build();
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.notFound().build();
         }
     }
 }

@@ -128,6 +128,7 @@ import com.iaschowrai.fileserver.dto.FileUploadResponse;
 import com.iaschowrai.fileserver.model.FileServer;
 import com.iaschowrai.fileserver.repository.FileServerRepository;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -167,6 +168,18 @@ public class FileServerServiceImpl implements FileServerService {
     public void init() {
         // Populate the file cache asynchronously on startup
         loadFilesIntoCacheAsync();
+    }
+
+    public int getNumberOfFilesInCache() {
+        return fileCache.size();
+    }
+
+    public long getTotalSizeOfFilesInCache() {
+        long totalSize = 0;
+        for (byte[] fileContent : fileCache.values()) {
+            totalSize += fileContent.length;
+        }
+        return totalSize;
     }
 
     @Async
@@ -211,6 +224,16 @@ public class FileServerServiceImpl implements FileServerService {
             });
         });
     }
+
+
+    @Override
+    public List<String> getAllFileNames() {
+        return fileServerRepository.findAll()
+                .stream()
+                .map(FileServer::getUploadFileName)
+                .collect(Collectors.toList());
+    }
+
 
     @Override
     @CacheEvict(value = "files", allEntries = true)
@@ -267,5 +290,31 @@ public class FileServerServiceImpl implements FileServerService {
 
         log.info("[downloadFile] - END");
         return new ByteArrayResource(fileBytes);
+    }
+
+
+    @Override
+    @Transactional
+    public void deleteFile(String filename) {
+        // Find the file metadata from the database
+        FileServer fileMetadata = fileServerRepository.findByUploadFileName(filename)
+                .orElseThrow(() -> new EntityNotFoundException("File not found: " + filename));
+
+        // Delete the file from the file system
+        String filePath = uploadPath + "/" + fileMetadata.getUploadFileName();
+        try {
+            Files.deleteIfExists(Path.of(filePath));
+        } catch (IOException e) {
+            log.error("Failed to delete file {}: {}", filename, e.getMessage());
+            throw new RuntimeException("Failed to delete file: " + filename, e);
+        }
+
+        // Delete the file metadata from the database
+        fileServerRepository.delete(fileMetadata);
+
+        // Remove the file from the cache if needed
+        fileCache.remove(filename);
+
+        log.info("File {} deleted successfully", filename);
     }
 }
