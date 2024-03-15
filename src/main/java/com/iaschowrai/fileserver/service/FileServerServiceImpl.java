@@ -7,6 +7,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -83,6 +84,7 @@ public class FileServerServiceImpl implements FileServerService{
     }
 
     @Override
+    @Cacheable("files")
     public ByteArrayResource downloadFile(String filename) {
         log.info("[downloadFile] - START");
 
