@@ -20,8 +20,8 @@ import java.time.LocalDateTime;
 public class FileServer {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
     private String fileName;
     private String uploadFileName;
 

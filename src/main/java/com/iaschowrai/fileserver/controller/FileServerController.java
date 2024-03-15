@@ -4,11 +4,15 @@ import com.iaschowrai.fileserver.dto.FileUploadResponse;
 import com.iaschowrai.fileserver.service.FileServerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.FileNotFoundException;
 import java.util.Objects;
 
 @RestController
@@ -53,4 +57,21 @@ public class FileServerController {
         }
     }
 
+    @GetMapping("/download/{fileName}")
+    public ResponseEntity<ByteArrayResource> downloadFile(@PathVariable(name = "fileName") String filename) {
+
+        try {
+            var byteArrayResource = fileServerService.downloadFile(filename);
+
+            return ResponseEntity.ok()
+                    .headers(httpHeaders ->
+                            httpHeaders.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename))
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(byteArrayResource);
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(null);
+        }
+    }
 }
